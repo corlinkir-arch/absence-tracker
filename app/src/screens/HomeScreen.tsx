@@ -8,8 +8,10 @@ import { EmptyState } from '../components/ui/EmptyState';
 import { MetricTile } from '../components/ui/MetricTile';
 import { ScreenContainer } from '../components/ui/ScreenContainer';
 import { SectionHeader } from '../components/ui/SectionHeader';
+import { Badge } from '../components/ui/Badge';
 import { colors, radius, spacing, typography } from '../theme';
 import { formatNumber, getElapsedParts } from '../utils/date';
+import { useMemoryStats, useMoodStats } from '../hooks/useMemory';
 
 const LAST_MEETING = new Date('2025-04-20T09:30:00');
 
@@ -17,6 +19,10 @@ export function HomeScreen() {
   const [now, setNow] = useState(() => Date.now());
   const fadeAnim = useRef(new Animated.Value(0)).current;
   const slideAnim = useRef(new Animated.Value(18)).current;
+  
+  // Hooks برای یادآوری‌ها
+  const memoryStats = useMemoryStats();
+  const moodStats = useMoodStats();
 
   useEffect(() => {
     const interval = setInterval(() => setNow(Date.now()), 1000);
@@ -105,6 +111,57 @@ export function HomeScreen() {
             ))}
           </View>
         </Card>
+
+        {/* بخش یادآوری‌ها */}
+        {memoryStats && memoryStats.totalEntries > 0 && (
+          <Card style={styles.sectionCard}>
+            <SectionHeader title="یادآوری‌های شما" hint="اطلاعات درباره‌ی ثبت‌های خود" />
+            <View style={styles.memoryStatsRow}>
+              <View style={styles.memoryStat}>
+                <Text style={styles.memoryStatValue}>{memoryStats.totalEntries}</Text>
+                <Text style={styles.memoryStatLabel}>کل یادآوری</Text>
+              </View>
+              <View style={styles.divider} />
+              <View style={styles.memoryStat}>
+                <Text style={styles.memoryStatValue}>{memoryStats.entriesThisMonth}</Text>
+                <Text style={styles.memoryStatLabel}>این ماه</Text>
+              </View>
+              <View style={styles.divider} />
+              <View style={styles.memoryStat}>
+                <Text style={styles.memoryStatValue}>{memoryStats.entriesThisWeek}</Text>
+                <Text style={styles.memoryStatLabel}>این هفته</Text>
+              </View>
+            </View>
+
+            {/* حالات روحی */}
+            <View style={styles.moodSection}>
+              <Text style={styles.moodSectionTitle}>حالات روحی اخیر:</Text>
+              <View style={styles.moodBadges}>
+                {Object.entries(moodStats).map(([mood, count]) => {
+                  if (count === 0) return null;
+                  return (
+                    <Badge
+                      key={mood}
+                      label={`${mood} (${count})`}
+                      variant={
+                        mood === 'خوشحال'
+                          ? 'success'
+                          : mood === 'آرام'
+                            ? 'accent'
+                            : mood === 'غمگین'
+                              ? 'error'
+                              : mood === 'نگران'
+                                ? 'warning'
+                                : 'neutral'
+                      }
+                      size="sm"
+                    />
+                  );
+                })}
+              </View>
+            </View>
+          </Card>
+        )}
 
         <Card style={styles.sectionCard}>
           <SectionHeader title="Without…" hint="Gentle counters for what changed in absence." />
@@ -284,5 +341,57 @@ const styles = StyleSheet.create({
   timelineBadge: {
     color: colors.accentSoft,
     fontSize: 14,
+  },
+
+  // Memory Stats
+  memoryStatsRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-around',
+    marginVertical: spacing.md,
+    paddingVertical: spacing.md,
+    borderTopWidth: 1,
+    borderBottomWidth: 1,
+    borderColor: colors.borderLight,
+  },
+  memoryStat: {
+    alignItems: 'center',
+    flex: 1,
+  },
+  memoryStatValue: {
+    fontSize: typography.title,
+    fontWeight: '700',
+    color: colors.accent,
+    marginBottom: spacing.xs,
+  },
+  memoryStatLabel: {
+    fontSize: typography.caption,
+    color: colors.textSecondary,
+    fontWeight: '500',
+  },
+  divider: {
+    width: 1,
+    height: 40,
+    backgroundColor: colors.borderLight,
+    marginHorizontal: spacing.md,
+  },
+
+  // Mood Section
+  moodSection: {
+    marginTop: spacing.md,
+    paddingTop: spacing.md,
+    borderTopWidth: 1,
+    borderTopColor: colors.borderLight,
+  },
+  moodSectionTitle: {
+    fontSize: typography.caption,
+    color: colors.textTertiary,
+    fontWeight: '600',
+    marginBottom: spacing.sm,
+  },
+  moodBadges: {
+    flexDirection: 'row',
+    flexWrap: 'wrap',
+    gap: spacing.sm,
   },
 });
