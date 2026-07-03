@@ -1,8 +1,9 @@
-import React, { useState } from 'react';
+import React, { useState, useMemo } from 'react';
 import { ScrollView, StyleSheet, Text, View } from 'react-native';
 import { AppHeader } from '../components/ui/AppHeader';
 import { Button } from '../components/ui/Button';
 import { Card } from '../components/ui/Card';
+import { Chip } from '../components/ui/Chip';
 import { EmptyState } from '../components/ui/EmptyState';
 import { Input } from '../components/ui/Input';
 import { Modal } from '../components/ui/Modal';
@@ -11,7 +12,7 @@ import { SectionHeader } from '../components/ui/SectionHeader';
 import { Badge } from '../components/ui/Badge';
 import { Alert } from '../components/ui/Alert';
 import { colors, spacing, typography } from '../theme';
-import { JournalEntry, MoodType } from '../types/journal';
+import { JournalEntry, MoodType, Attachment } from '../types/journal';
 import { useMemories, useAddMemory, useDeleteMemory, useMoodStats } from '../hooks/useMemory';
 
 const MOODS: MoodType[] = ['آرام', 'خوشحال', 'غمگین', 'نگران', 'خسته', 'انرژی دار'];
@@ -22,6 +23,8 @@ export function JournalScreen() {
   const { deleteEntry, deleteAllEntries, isLoading: deleteLoading } = useDeleteMemory();
   const moodStats = useMoodStats();
 
+  // فیلترهای صفحه
+  const [selectedMood, setSelectedMood] = useState<MoodType | 'همه'>('همه');
   const [visible, setVisible] = useState(false);
   const [editingId, setEditingId] = useState<string | null>(null);
   const [title, setTitle] = useState('');
@@ -30,6 +33,13 @@ export function JournalScreen() {
   const [reflectionError, setReflectionError] = useState('');
   const [mood, setMood] = useState<MoodType>('آرام');
   const [showClearWarning, setShowClearWarning] = useState(false);
+  const [attachments, setAttachments] = useState<Attachment[]>([]);
+
+  // فیلتر کردن ورودی‌ها بر اساس حالت روحی انتخاب‌شده
+  const filteredEntries = useMemo(() => {
+    if (selectedMood === 'همه') return entries;
+    return entries.filter((entry) => entry.mood === selectedMood);
+  }, [entries, selectedMood]);
 
   const validateForm = (): boolean => {
     let isValid = true;
@@ -64,10 +74,34 @@ export function JournalScreen() {
         reflection: reflection.trim(),
         mood,
         tags: [],
+        attachments: attachments.length > 0 ? attachments : undefined,
       });
 
       // ریست فرم
       setTitle('');
+      setReflection('');
+      setMood('آرام');
+      setAttachments([]);
+      setVisible(false);
+      setEditingId(null);
+    } catch (error) {
+      console.error('خطا در ذخیره‌سازی:', error);
+    }
+  };
+
+  // تبدیل تاریخ به فرمت دقیق‌تر
+  const formatDetailedDate = (dateString: string): string => {
+    const date = new Date(dateString);
+    return date.toLocaleDateString('fa-IR', {
+      weekday: 'long',
+      year: 'numeric',
+      month: 'long',
+      day: 'numeric',
+      hour: '2-digit',
+      minute: '2-digit',
+      second: '2-digit',
+    });
+  };
       setReflection('');
       setMood('آرام');
       setVisible(false);
